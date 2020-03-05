@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "/chart-lib-sandbox/static/css/main.e2e3e5fb.chunk.css",
+    "main.js": "/chart-lib-sandbox/static/js/main.b8eb0b9f.chunk.js",
+    "main.js.map": "/chart-lib-sandbox/static/js/main.b8eb0b9f.chunk.js.map",
+    "runtime-main.js": "/chart-lib-sandbox/static/js/runtime-main.413d11d7.js",
+    "runtime-main.js.map": "/chart-lib-sandbox/static/js/runtime-main.413d11d7.js.map",
+    "static/js/2.b078c923.chunk.js": "/chart-lib-sandbox/static/js/2.b078c923.chunk.js",
+    "static/js/2.b078c923.chunk.js.map": "/chart-lib-sandbox/static/js/2.b078c923.chunk.js.map",
+    "index.html": "/chart-lib-sandbox/index.html",
+    "precache-manifest.780fff288ba3390d9e196c1c6eb4e62b.js": "/chart-lib-sandbox/precache-manifest.780fff288ba3390d9e196c1c6eb4e62b.js",
+    "service-worker.js": "/chart-lib-sandbox/service-worker.js",
+    "static/css/main.e2e3e5fb.chunk.css.map": "/chart-lib-sandbox/static/css/main.e2e3e5fb.chunk.css.map",
+    "static/js/2.b078c923.chunk.js.LICENSE.txt": "/chart-lib-sandbox/static/js/2.b078c923.chunk.js.LICENSE.txt"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.413d11d7.js",
+    "static/js/2.b078c923.chunk.js",
+    "static/css/main.e2e3e5fb.chunk.css",
+    "static/js/main.b8eb0b9f.chunk.js"
+  ]
+}
