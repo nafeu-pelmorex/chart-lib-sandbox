@@ -2,87 +2,207 @@ import React from 'react';
 import './App.css';
 import ReactEcharts from 'echarts-for-react';
 import _ from 'lodash';
-// import { data } from './data';
+import queryString from 'query-string';
 
-function getFrontLoadedYValue(total, size, index) {
-    let x = (index / size);
-    let m = 3/2;
-    let b = (total * 0);
+const parsed = queryString.parse(window.location.search);
 
-    if (x > 1/3 && x <= 2/3) {
-      m = 9/10;
-      b = total * 1/2;
-      x -= 1/3;
-    } else if (x > 2/3 && x <= 3/3) {
-      m = 3/5;
-      b = total * 4/5;
-      x -= 2/3;
-    }
+const TOTAL_TARGET = parsed.target ? parseInt(parsed.target) : 100;
+const TIME_POINTS = parsed.points ? parseInt(parsed.points) : 24;
 
-    let y = (m * (total * x)) + b;
+const getTimeParting = (timePoints) => {
+  if (timePoints < 40) {
+    return _.sortBy(_.uniq(_.map(_.range(_.random(1, Math.floor(timePoints / 2))), item => _.random(0, timePoints))));
+  }
 
-    return y;
+  let out = _.sortBy(_.uniq(_.map(_.range(_.random(1, 10)), item => _.random(0, timePoints))));
+
+  return out;
 }
 
-function generateFrontLoadedPacing(total, size) {
-    let data = [];
-    for (let i = 0; i <= size; i += 1) {
-      data.push(
-        [
-          i,
-          getFrontLoadedYValue(total, size, i)
-        ]
-      );
-    }
-    return data;
+const getTimePoints = (timePoints) => {
+  return _.range(1, TIME_POINTS + 1);
 }
 
-function generateEvenPacingData(total, size) {
-    let data = [];
-    for (let i = 0; i <= size; i += 1) {
-      data.push(
-        [
-          i,
-          total * (i / size)
-        ]
-      );
+const timePoints = getTimePoints(TIME_POINTS);
+const timeParting = getTimeParting(TIME_POINTS);
+
+const getIdealFrontLoadedPacingLine = ({ timePoints, timeParting }) => {
+  const difference = _.difference(timePoints, timeParting);
+  let [firstTercile, secondTercile, thirdTercile, remainder] = _.chunk(difference, Math.floor(difference.length / 3));
+
+  if (remainder) {
+    thirdTercile = _.concat(thirdTercile, remainder);
+    if (remainder.length === 2) {
+      const firstElementOfThirdTercile = _.take(thirdTercile);
+      thirdTercile = _.difference(thirdTercile, firstElementOfThirdTercile);
+      secondTercile = _.concat(secondTercile, firstElementOfThirdTercile);
     }
-    return data;
+  }
+
+  const yValueMapping = {};
+
+  const firstTercileDelivery = TOTAL_TARGET * 0.5;
+  const secondTercileDelivery = TOTAL_TARGET * 0.3;
+  const thirdTercileDelivery = TOTAL_TARGET * 0.2;
+
+  _.each(firstTercile, (item, index) => {
+    yValueMapping[item] = firstTercileDelivery * ((index + 1) / firstTercile.length);
+  });
+
+  _.each(secondTercile, (item, index) => {
+    yValueMapping[item] = secondTercileDelivery * ((index + 1) / secondTercile.length) + firstTercileDelivery;
+  });
+
+  _.each(thirdTercile, (item, index) => {
+    yValueMapping[item] = thirdTercileDelivery * ((index + 1) / thirdTercile.length) + firstTercileDelivery + secondTercileDelivery;
+  });
+
+  const plot = [[0, 0]];
+  let lastValue = 0;
+
+  _.each(timePoints, item => {
+    if (!_.includes(timeParting, item)) {
+      lastValue = yValueMapping[item];
+    }
+    plot.push([item, lastValue]);
+  })
+
+  const markArea = _.map(timeParting, item => {
+    return [
+      {
+        name: (item > 0 && timePoints.length < 40) ? item : "",
+        xAxis: item - 1,
+      },
+      {
+        xAxis: item
+      }
+    ];
+  });
+
+  return {
+    plot,
+    markArea
+  }
+};
+
+const getIdealEvenPacingLine = ({ timePoints, timeParting }) => {
+  const difference = _.difference(timePoints, timeParting);
+
+  const yValueMapping = {};
+
+  _.each(difference, (item, index) => {
+    yValueMapping[item] = TOTAL_TARGET * ((index + 1) / difference.length);
+  });
+
+  const plot = [[0, 0]];
+  let lastValue = 0;
+
+  _.each(timePoints, item => {
+    if (!_.includes(timeParting, item)) {
+      lastValue = yValueMapping[item];
+    }
+    plot.push([item, lastValue]);
+  });
+
+  const markArea = _.map(timeParting, item => {
+    return [
+      {
+        name: (item > 0 && timePoints.length < 40) ? item : "",
+        xAxis: item - 1,
+      },
+      {
+        xAxis: item
+      }
+    ];
+  });
+
+  return {
+    plot,
+    markArea
+  }
 }
 
-const option = {
-    grid: {
-        top: 40,
+const { plot: idealEvenPacing } = getIdealEvenPacingLine({
+  timePoints,
+  timeParting: []
+});
+
+const {
+  plot: idealEvenPacingWithParting,
+  markArea: idealEvenPacingWithPartingMarkArea
+} = getIdealEvenPacingLine({
+  timePoints,
+  timeParting
+});
+
+const { plot: idealFrontLoadedPacing } = getIdealFrontLoadedPacingLine({
+  timePoints,
+  timeParting: []
+});
+
+const {
+  plot: idealFrontLoadedPacingWithParting,
+  markArea: idealFrontLoadedPacingWithPartingMarkArea
+} = getIdealFrontLoadedPacingLine({
+  timePoints,
+  timeParting
+});
+
+const getOption = (override) => {
+    return {
+      title: {
+        text: 'Ideal Progress Graph Examples',
+        left: 'center'
+      },
+      grid: {
+        top: 100,
         left: 50,
         right: 40,
         bottom: 50
-    },
-    xAxis: {
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+          animation: false,
+          label: {
+            backgroundColor: '#ccc',
+            borderColor: '#aaa',
+            borderWidth: 1,
+            shadowBlur: 0,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
+            color: '#222'
+          }
+        }
+      },
+      legend: {
+        data: [
+          'Ideal Even Pacing',
+          'Ideal Even Pacing (with Parting)',
+          'Ideal Front-loaded Pacing',
+          'Ideal Front-loaded Pacing (with Parting)'
+        ],
+        left: 10,
+        top: 40,
+      },
+      xAxis: {
         name: 'x',
+        max: TIME_POINTS,
         minorTick: {
-            show: true
+          show: true
         },
-    },
-    yAxis: {
+      },
+      yAxis: {
         name: 'y',
         min: 0,
-        max: 100,
+        max: TOTAL_TARGET,
         minorTick: {
-            show: true
+          show: true
         },
-    },
-    series: [
-        {
-            type: 'line',
-            clip: true,
-            data: generateFrontLoadedPacing(100, 24)
-        },
-        {
-            type: 'line',
-            clip: true,
-            data: generateEvenPacingData(100, 24)
-        },
-    ]
+      },
+      ...override
+    }
 };
 
 const opts = {
@@ -95,7 +215,44 @@ function App() {
     <div className="App">
       <div className="chart">
         <ReactEcharts
-          option={option}
+          option={getOption({
+            series: [
+              {
+                name: 'Ideal Even Pacing',
+                type: 'line',
+                clip: true,
+                symbol: 'none',
+                data: idealEvenPacing
+              },
+              {
+                name: 'Ideal Even Pacing (with Parting)',
+                type: 'line',
+                clip: true,
+                symbol: 'none',
+                data: idealEvenPacingWithParting,
+                markArea: {
+                  data: idealEvenPacingWithPartingMarkArea
+                }
+              },
+              {
+                name: 'Ideal Front-loaded Pacing',
+                type: 'line',
+                clip: true,
+                symbol: 'none',
+                data: idealFrontLoadedPacing
+              },
+              {
+                name: 'Ideal Front-loaded Pacing (with Parting)',
+                type: 'line',
+                clip: true,
+                symbol: 'none',
+                data: idealFrontLoadedPacingWithParting,
+                markArea: {
+                    data: idealFrontLoadedPacingWithPartingMarkArea
+                }
+              },
+            ]
+          })}
           notMerge={true}
           lazyUpdate={true}
           theme={"theme_name"}
