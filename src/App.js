@@ -207,7 +207,7 @@ const getOption = (override) => {
 
 const opts = {
   width: 'auto',
-  height: '750px',
+  height: '550vh',
 }
 
 function App() {
